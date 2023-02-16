@@ -1,5 +1,8 @@
 use crate::asset::Assets;
-use macroquad::{color::colors::WHITE, texture::{draw_texture, Texture2D}};
+use macroquad::{
+    color::colors::WHITE,
+    texture::{draw_texture, Texture2D},
+};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -27,8 +30,10 @@ impl TileType {
     pub fn size(&self) -> (f32, f32) {
         match self {
             Self::Ground => (40.0, 40.0),
-            Self::Wall =>(20.0, 65.0),
-            _ => todo!("implement size for the rest of enum variants")
+            Self::Wall => (20.0, 65.0),
+            Self::SideWall => (5.0, 5.0),
+            Self::GatewayWall => (5.0, 5.0),
+            _ => todo!("implement size for the rest of enum variants"),
         }
     }
 
@@ -38,7 +43,6 @@ impl TileType {
             ((pos.1 / self.size().1).floor()) as usize,
         )
     }
-
 }
 
 pub type Layer = HashMap<(usize, usize), TileType>;
@@ -76,10 +80,7 @@ impl TileMap {
         tile_type: TileType,
     ) -> Result<(), GridPositionOutOfBounds> {
         let tile_pos = tile_type.tile_pos(pos);
-        if tile_pos.0 > self.width || tile_pos.1 > self.height {
-            return Err(GridPositionOutOfBounds);
-        }
-
+        println!("tile pos {:?}", tile_pos);
         self.layers[layer].insert(tile_pos, tile_type);
         Ok(())
     }
@@ -95,7 +96,12 @@ impl TileMap {
 
     fn draw_layer(&self, layer: usize, assets: &Assets) {
         for (pos, tile_type) in self.layers[layer].iter() {
-            draw_texture(tile_type.texture(assets), pos.0 as f32 * tile_type.size().0, pos.1 as f32 * tile_type.size().1, WHITE);
+            draw_texture(
+                tile_type.texture(assets),
+                pos.0 as f32 * tile_type.size().0,
+                pos.1 as f32 * tile_type.size().1,
+                WHITE,
+            );
         }
     }
 }

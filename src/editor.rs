@@ -1,6 +1,8 @@
-use crate::{asset::Assets, tile::{TileType, TileMap}};
-use macroquad::input::{
-    is_key_pressed, is_mouse_button_pressed, mouse_position, KeyCode, MouseButton,
+use crate::{
+    asset::Assets,
+    tile::{TileMap, TileType},
+};
+use macroquad::{color::WHITE, texture::draw_texture, input::{is_key_pressed, is_mouse_button_pressed, mouse_position, KeyCode, MouseButton},
 };
 
 const INSERT: KeyCode = KeyCode::I;
@@ -43,14 +45,30 @@ impl Editor {
         }
 
         if is_key_pressed(GROUND) {
+            println!("ground tile selected");
             self.cur_tile_type = TileType::Ground;
         } else if is_key_pressed(WALL) {
-            self.cur_tile_type = TileType::Wall;
+            match self.cur_tile_type {
+                TileType::Wall => {
+                    println!("side wall tile selected");
+                    self.cur_tile_type = TileType::SideWall;
+                }
+                TileType::SideWall => {
+                    println!("gateway wall tile selected");
+                    self.cur_tile_type = TileType::GatewayWall;
+                }
+                _ => {
+                    println!("wall tile selected");
+                    self.cur_tile_type = TileType::Wall;
+                }
+            }
         }
 
         if is_key_pressed(LAYER1) {
+            println!("changed to layer 1");
             self.cur_layer = 0;
         } else if is_key_pressed(LAYER2) {
+            println!("changed to layer 2");
             self.cur_layer = 1;
         }
 
@@ -63,6 +81,8 @@ impl Editor {
 
     pub fn draw(&self, assets: &Assets) {
         self.tile_map.draw(assets);
+        let mouse_pos = mouse_position();
+        draw_texture(self.cur_tile_type.texture(assets), mouse_pos.0, mouse_pos.1, WHITE);
     }
 
     fn handle_mouse_click(&mut self) {
@@ -72,11 +92,7 @@ impl Editor {
             match self.mode {
                 EditorMode::Insert => {
                     self.tile_map
-                        .new_tile(
-                            self.cur_layer,
-                            mouse_pos,
-                            self.cur_tile_type.clone(),
-                        )
+                        .new_tile(self.cur_layer, mouse_pos, self.cur_tile_type.clone())
                         .unwrap();
                 }
                 EditorMode::Delete => {
