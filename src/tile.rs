@@ -1,4 +1,4 @@
-use crate::asset::Assets;
+use crate::assets::Assets;
 use macroquad::{
     color::colors::WHITE,
     texture::{draw_texture, Texture2D},
