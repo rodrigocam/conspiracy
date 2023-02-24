@@ -54,6 +54,7 @@ pub struct Animation {
     frames: u32,
     time_elapsed: f32,
     is_playing: bool,
+    run_forever: bool,
 }
 
 impl Animation {
@@ -63,6 +64,7 @@ impl Animation {
             frames,
             time_elapsed: 0.0,
             is_playing: false,
+            run_forever: false,
         }
     }
 
@@ -70,7 +72,11 @@ impl Animation {
         if self.is_playing {
             self.time_elapsed += time_elapsed;
             if self.time_elapsed >= self.duration {
-                self.time_elapsed -= self.duration;
+                if self.run_forever {
+                    self.time_elapsed -= self.duration;
+                } else {
+                    self.stop();
+                }
             }
         }
     }
@@ -89,6 +95,10 @@ impl Animation {
 
     pub fn play(&mut self) {
         self.is_playing = true;
+    }
+
+    pub fn toggle_run_forever(&mut self) {
+        self.run_forever = !self.run_forever;
     }
 
     pub fn stop(&mut self) {

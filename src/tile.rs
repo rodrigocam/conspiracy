@@ -1,9 +1,41 @@
-use crate::assets::Assets;
+use crate::{animation::*, assets::*};
+
+
 use macroquad::{
     color::colors::WHITE,
     texture::{draw_texture, Texture2D},
+    prelude::{Rect, DrawTextureParams, Vec2},
 };
+use hecs::World;
 use std::collections::HashMap;
+
+
+fn build_sidedoor_animation() -> (AnimationSource, Animation) {
+    let mut anim_src = AnimationSource::new(TextureId::SideDoor);
+    let frame_size = Vec2::new(40.0, 59.0);
+    for i in 0..4 {
+        anim_src.set_frame(
+            i,
+            DrawTextureParams {
+                dest_size: None,
+                source: Some(
+                    Rect {
+                        x: i as f32 * frame_size.x,
+                        y: 0.0,
+                        w: frame_size.x,
+                        h: frame_size.y,
+                    }
+                ),
+                rotation: 0.0,
+                flip_x: false,
+                flip_y: false,
+                pivot: None,
+            },
+        )
+    }
+
+    (anim_src, Animation::new(0.8, 4))
+}
 
 #[derive(Debug, Clone)]
 pub enum TileType {
@@ -11,19 +43,35 @@ pub enum TileType {
     Wall = 1,
     SideWall = 2,
     GatewayWall = 3,
-    Shadow = 4,
+    Door = 4,
+    SideDoor = 5,
+    Shadow = 6,
 }
 
 impl TileType {
-    pub fn texture(&self, assets: &Assets) -> Texture2D {
+    pub fn spawn_tile(&self, world: &mut World, pos: (f32, f32)) {
         match self {
-            Self::Ground => assets.textures.ground,
-            Self::Wall => assets.textures.wall,
-            Self::SideWall => assets.textures.side_wall,
-            Self::GatewayWall => assets.textures.gateway_wall,
-            // Tile::Door => TileData::new(assets.textures.door),
-            // Tile::SideDoor => TileData::new(assets.textures.side_door),
-            Self::Shadow => assets.textures.shadow,
+            Self::Ground => {
+                world.spawn((self.clone(), TextureId::Ground, pos));
+            },
+            Self::Wall => {
+                world.spawn((self.clone(), TextureId::Wall, pos));
+            },
+            Self::SideWall => {
+                world.spawn((self.clone(), TextureId::SideWall, pos));
+            },
+            Self::GatewayWall => {
+                world.spawn((self.clone(), TextureId::GatewayWall, pos));
+            },
+            Self::Door => {
+                // let (anim_src, anim) = build_door_animation();
+                // world.spawn((self, anim_src, anim, pos));
+            },
+            Self::SideDoor => {
+                let (anim_src, anim) = build_sidedoor_animation();
+                world.spawn((self.clone(), anim_src, anim, pos));
+            },
+            Self::Shadow => {},
         }
     }
 
@@ -36,72 +84,20 @@ impl TileType {
             _ => todo!("implement size for the rest of enum variants"),
         }
     }
+}
 
-    pub fn tile_pos(&self, pos: (f32, f32)) -> (usize, usize) {
-        (
-            ((pos.0 / self.size().0).floor()) as usize,
-            ((pos.1 / self.size().1).floor()) as usize,
-        )
+pub fn draw_tiles(world: &mut World, assets: &Assets) {
+    for (_, (_, anim, anim_src, pos)) in &mut world.query::<(&TileType, &Animation, &AnimationSource, &(f32, f32))>() {
+        anim.draw(Vec2::from(*pos), assets, anim_src);
+    }
+    
+    for (_, (_, tex_id, position)) in &mut world.query::<(&TileType, &TextureId, &(f32, f32))>() {
+        draw_texture(
+            *assets.get_texture(tex_id).unwrap(),
+            position.0,
+            position.1,
+            WHITE,
+        );
     }
 }
 
-pub type Layer = HashMap<(usize, usize), TileType>;
-
-#[derive(Debug)]
-pub struct GridPositionOutOfBounds;
-
-pub struct TileMap {
-    width: usize,
-    height: usize,
-    layers: [Layer; 2],
-}
-
-impl TileMap {
-    pub fn new(width: usize, height: usize) -> Self {
-        Self {
-            width,
-            height,
-            layers: [HashMap::new(), HashMap::new()],
-        }
-    }
-
-    pub fn get_tile(&self, layer: usize, x: usize, y: usize) -> Option<&TileType> {
-        if x > self.width as usize || y > self.height as usize {
-            return None;
-        }
-
-        self.layers[layer].get(&(x, y))
-    }
-
-    pub fn new_tile(
-        &mut self,
-        layer: usize,
-        pos: (f32, f32),
-        tile_type: TileType,
-    ) -> Result<(), GridPositionOutOfBounds> {
-        let tile_pos = tile_type.tile_pos(pos);
-        println!("tile pos {:?}", tile_pos);
-        self.layers[layer].insert(tile_pos, tile_type);
-        Ok(())
-    }
-
-    // pub fn remove_tile(&mut self, layer: usize, pos: (f32, f32) {
-    //     self.layers[layer].remove((y * x + x) as usize);
-    // }
-
-    pub fn draw(&self, assets: &Assets) {
-        self.draw_layer(0, assets);
-        self.draw_layer(1, assets);
-    }
-
-    fn draw_layer(&self, layer: usize, assets: &Assets) {
-        for (pos, tile_type) in self.layers[layer].iter() {
-            draw_texture(
-                tile_type.texture(assets),
-                pos.0 as f32 * tile_type.size().0,
-                pos.1 as f32 * tile_type.size().1,
-                WHITE,
-            );
-        }
-    }
-}
