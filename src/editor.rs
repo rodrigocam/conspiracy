@@ -7,8 +7,9 @@ const INSERT: KeyCode = KeyCode::I;
 const DELETE: KeyCode = KeyCode::D;
 const SAVE: KeyCode = KeyCode::S;
 
-const GROUND: KeyCode = KeyCode::G;
+const GROUND: KeyCode = KeyCode::Q;
 const WALL: KeyCode = KeyCode::W;
+const DOOR: KeyCode = KeyCode::E;
 
 const LAYER1: KeyCode = KeyCode::Key1;
 const LAYER2: KeyCode = KeyCode::Key2;
@@ -59,6 +60,19 @@ pub fn system_update(editor: &mut Editor, world: &mut World) {
             _ => {
                 println!("wall tile selected");
                 editor.cur_tile_type = TileType::Wall;
+            }
+        }
+    }
+
+    if is_key_pressed(DOOR) {
+        match editor.cur_tile_type {
+            TileType::Door => {
+                println!("side door tile selected");
+                editor.cur_tile_type = TileType::SideDoor;
+            }
+            _ => {
+                println!("door tile selected");
+                editor.cur_tile_type = TileType::Door;
             }
         }
     }

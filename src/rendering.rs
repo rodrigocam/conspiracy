@@ -16,11 +16,9 @@ pub fn system_render_textures(world: &mut World, assets: &Assets) {
 }
 
 pub fn system_draw_tiles(world: &mut World, assets: &Assets) {
-    for (_, (_, anim, anim_src, pos)) in &mut world.query::<(&TileType, &Animation, &AnimationSource, &(f32, f32))>() {
-        anim.draw(Vec2::from(*pos), assets, anim_src);
-    }
-    
-    for (_, (_, tex_id, position)) in &mut world.query::<(&TileType, &TextureId, &(f32, f32))>() {
+    let all_tiles = &mut world.query::<(&TileType, &TextureId, &(f32, f32))>();
+
+    for (_, (_, tex_id, position)) in all_tiles.iter().filter(|(_, (tt, _, _))| *tt == &TileType::Ground) {
         draw_texture(
             *assets.get_texture(tex_id).unwrap(),
             position.0,
@@ -28,4 +26,18 @@ pub fn system_draw_tiles(world: &mut World, assets: &Assets) {
             WHITE,
         );
     }
+
+    for (_, (_, tex_id, position)) in all_tiles.iter().filter(|(_, (tt, _, _))| *tt != &TileType::Ground) {
+        draw_texture(
+            *assets.get_texture(tex_id).unwrap(),
+            position.0,
+            position.1,
+            WHITE,
+        );
+    }
+
+    for (_, (_, anim, anim_src, pos)) in &mut world.query::<(&TileType, &Animation, &AnimationSource, &(f32, f32))>() {
+        anim.draw(Vec2::from(*pos), assets, anim_src);
+    }
+    
 }

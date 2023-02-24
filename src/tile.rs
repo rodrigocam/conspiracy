@@ -10,6 +10,33 @@ use hecs::World;
 use std::collections::HashMap;
 
 
+fn build_door_animation() -> (AnimationSource, Animation) {
+    let mut anim_src = AnimationSource::new(TextureId::Door);
+    let frame_size = Vec2::new(40.0, 40.0);
+    for i in 0..4 {
+        anim_src.set_frame(
+            i,
+            DrawTextureParams {
+                dest_size: None,
+                source: Some(
+                    Rect {
+                        x: i as f32 * frame_size.x,
+                        y: 0.0,
+                        w: frame_size.x,
+                        h: frame_size.y,
+                    }
+                ),
+                rotation: 0.0,
+                flip_x: false,
+                flip_y: false,
+                pivot: None,
+            },
+        )
+    }
+
+    (anim_src, Animation::new(0.8, 4))
+}
+
 fn build_sidedoor_animation() -> (AnimationSource, Animation) {
     let mut anim_src = AnimationSource::new(TextureId::SideDoor);
     let frame_size = Vec2::new(40.0, 59.0);
@@ -37,7 +64,7 @@ fn build_sidedoor_animation() -> (AnimationSource, Animation) {
     (anim_src, Animation::new(0.8, 4))
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TileType {
     Ground = 0,
     Wall = 1,
@@ -64,8 +91,8 @@ impl TileType {
                 world.spawn((self.clone(), TextureId::GatewayWall, pos));
             },
             Self::Door => {
-                // let (anim_src, anim) = build_door_animation();
-                // world.spawn((self, anim_src, anim, pos));
+                let (anim_src, anim) = build_door_animation();
+                world.spawn((self.clone(), anim_src, anim, pos));
             },
             Self::SideDoor => {
                 let (anim_src, anim) = build_sidedoor_animation();
@@ -81,23 +108,11 @@ impl TileType {
             Self::Wall => (20.0, 65.0),
             Self::SideWall => (5.0, 5.0),
             Self::GatewayWall => (5.0, 5.0),
+            Self::Door => (40.0, 40.0),
+            Self::SideDoor => (5.0, 59.0),
             _ => todo!("implement size for the rest of enum variants"),
         }
     }
 }
 
-pub fn draw_tiles(world: &mut World, assets: &Assets) {
-    for (_, (_, anim, anim_src, pos)) in &mut world.query::<(&TileType, &Animation, &AnimationSource, &(f32, f32))>() {
-        anim.draw(Vec2::from(*pos), assets, anim_src);
-    }
-    
-    for (_, (_, tex_id, position)) in &mut world.query::<(&TileType, &TextureId, &(f32, f32))>() {
-        draw_texture(
-            *assets.get_texture(tex_id).unwrap(),
-            position.0,
-            position.1,
-            WHITE,
-        );
-    }
-}
 
