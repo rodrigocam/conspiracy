@@ -2,6 +2,9 @@ use crate::tile::TileType;
 use macroquad::input::{is_key_pressed, is_key_down, is_mouse_button_pressed, mouse_position, KeyCode, MouseButton};
 use hecs::World;
 use std::collections::HashMap;
+use serde::{ser::SerializeMap, Serialize, Deserialize, Serializer};
+use std::fmt::{Display, Formatter};
+
 
 const INSERT: KeyCode = KeyCode::I;
 const DELETE: KeyCode = KeyCode::D;
@@ -14,19 +17,48 @@ const DOOR: KeyCode = KeyCode::E;
 const LAYER1: KeyCode = KeyCode::Key1;
 const LAYER2: KeyCode = KeyCode::Key2;
 
+#[derive(Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TileIndex((u32, u32));
 
+impl Display for TileIndex {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct TileMap(HashMap<TileIndex, TileType>);
+
+impl Serialize for TileMap {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(self.0.len()))?;
+        for (k, v) in &self.0 {
+            map.serialize_entry(&k.to_string(), &v)?;
+        }
+        map.end()
+    }
+}
+
+
+#[derive(Serialize, Deserialize)]
 pub struct CurTile;
 
+
+#[derive(Serialize, Deserialize)]
 pub enum EditorMode {
     Insert,
     Delete,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Editor {
     pub mode: EditorMode,
     pub cur_tile_type: TileType,
     pub cur_layer: usize,
-    pub tile_map: [HashMap<(u32, u32), TileType>; 3],
+    pub tile_map: [TileMap; 3],
 }
 
 impl Editor {
@@ -35,7 +67,7 @@ impl Editor {
             mode: EditorMode::Insert,
             cur_tile_type: TileType::Ground,
             cur_layer: 0,
-            tile_map: [HashMap::new(), HashMap::new(), HashMap::new()],
+            tile_map: [TileMap(HashMap::new()), TileMap(HashMap::new()), TileMap(HashMap::new())],
         }
     }
 
@@ -45,6 +77,7 @@ impl Editor {
 
     pub fn update(&mut self, world: &mut World) {
         self.update_cur_tile_pos(world);
+
         if is_key_pressed(INSERT) {
             self.mode = EditorMode::Insert;
         } else if is_key_pressed(DELETE) {
@@ -108,7 +141,8 @@ impl Editor {
         self.handle_mouse_click(world);
 
         if is_key_pressed(SAVE) {
-            todo!("save the tile map");
+            let serialized = serde_json::to_string(self).unwrap();
+            std::fs::write("map.txt", serialized).unwrap();
         }
     }
 
@@ -124,9 +158,10 @@ impl Editor {
                         (((mouse_pos.0 / self.cur_tile_type.size().0).floor())  * self.cur_tile_type.size().0),
                         ((mouse_pos.1 / self.cur_tile_type.size().1).floor()) * self.cur_tile_type.size().1 ,
                     );
-                    self.tile_map[self.cur_layer]
-                        .insert((tile_pos.0 as u32, tile_pos.1 as u32), self.cur_tile_type.clone());
-                    world.spawn(self.cur_tile_type.new_tile_entity(tile_pos));
+                    self.tile_map[self.cur_layer].0
+                        .insert(TileIndex((tile_pos.0 as u32, tile_pos.1 as u32)), self.cur_tile_type.clone());
+                    let (a,b,c) =self.cur_tile_type.new_tile_entity(tile_pos);
+                    world.spawn((a,b,c, self.cur_layer as crate::engine::rendering::Layer));
                 }
                 EditorMode::Delete => {
                     // self.tile_map
@@ -149,7 +184,7 @@ impl Editor {
 
     fn spawn_cur_tile(&self, world: &mut World) {
         let (a,b,c) = self.cur_tile_type.new_tile_entity(mouse_position());
-        world.spawn((a,b,c, CurTile));
+        world.spawn((a,b,c, CurTile, 100 as crate::engine::rendering::Layer));
     }
 
     fn update_cur_tile_pos(&self, world: &mut World) {

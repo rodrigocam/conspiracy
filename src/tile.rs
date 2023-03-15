@@ -1,5 +1,6 @@
 use crate::assets::*;
 use crate::engine::{rendering::Render, animation::{AnimationSource, Animation}};
+use serde::{Serialize, Deserialize};
 
 
 use macroquad::{
@@ -64,7 +65,7 @@ fn build_sidedoor_animation() -> (AnimationSource, Animation) {
     (anim_src, Animation::new(0.8, 4))
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TileType {
     Ground = 0,
     Wall = 1,
@@ -111,7 +112,7 @@ impl TileType {
             Self::SideWall => (5.0, 5.0),
             Self::GatewayWall => (5.0, 5.0),
             Self::Door => (40.0, 40.0),
-            Self::SideDoor => (5.0, 5.0),
+            Self::SideDoor => (1.0, 5.0),
             _ => todo!("implement size for the rest of enum variants"),
         }
     }

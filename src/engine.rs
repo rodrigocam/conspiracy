@@ -146,26 +146,36 @@ pub mod rendering {
     use crate::engine::{TextureId, Assets};
     use crate::engine::animation::{Animation, AnimationSource};
 
+    pub type Layer = u32;
+
+    #[derive(Debug)]
     pub enum Render {
         Texture(TextureId),
         Animation(Animation, AnimationSource),
     }
 
     pub fn system_render(world: &World, assets: &Assets) {
-        let all_renders = &mut world.query::<(&Render, &(f32, f32))>();
-        for (_, (render, pos)) in all_renders {
-            match &render {
-                Render::Texture(tex_id) => draw_texture(
-                    *assets.get_texture(tex_id).unwrap(),
-                    pos.0,
-                    pos.1,
-                    WHITE,
-                ),
-                Render::Animation(anim, anim_src) => anim.draw(
-                    *pos,
-                    assets,
-                    anim_src
-                ),
+        let all_renders = &mut world.query::<(&Render, &(f32, f32), &Layer)>();
+
+        if let Some(max_layer) = all_renders.iter().max_by(|x, y| x.1.2.cmp(&*y.1.2)) {
+            for l in 0..*max_layer.1.2 + 1 {
+                let renders = all_renders.iter().filter(|(_, (_,_, layer))| **layer == l);
+
+                for (_, (render, pos, _)) in renders {
+                    match &render {
+                        Render::Texture(tex_id) => draw_texture(
+                            *assets.get_texture(tex_id).unwrap(),
+                            pos.0,
+                            pos.1,
+                            WHITE,
+                        ),
+                        Render::Animation(anim, anim_src) => anim.draw(
+                            *pos,
+                            assets,
+                            anim_src
+                        ),
+                    }
+                }
             }
         }
     }
