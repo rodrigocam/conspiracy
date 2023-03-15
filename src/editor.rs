@@ -8,12 +8,16 @@ const WALL: KeyCode = KeyCode::W;
 const DOOR: KeyCode = KeyCode::E;
 
 const UNDO: KeyCode = KeyCode::U;
+const SAVE: KeyCode = KeyCode::S;
+const LOAD: KeyCode = KeyCode::L;
+const MULTI: KeyCode = KeyCode::Z;
+
+const MAP_PATH: &str = "map.txt";
 
 
 #[derive(Debug)]
 pub enum Command {
     Insert(TileType, (u32, u32)),
-    Undo,
 }
 
 
@@ -70,7 +74,16 @@ impl Editor {
             self.undo_command(world);
         }
 
-        if is_mouse_button_pressed(MouseButton::Left) {
+        if is_key_pressed(SAVE) {
+            self.save_map();
+        }
+        
+        if is_key_pressed(LOAD) {
+            println!("loading");
+            self.load_map(world);
+        }
+
+        if is_mouse_button_pressed(MouseButton::Left) || is_key_down(MULTI) {
             self.insert_selected_tile(world);
         }
     }
@@ -79,10 +92,10 @@ impl Editor {
         let last_command = self.commands.pop().unwrap();
         match last_command {
             Command::Insert(_, pos) => {
-                let removed = self.tile_map.remove(&pos).unwrap();
-                world.despawn(removed.1).unwrap();
+                if let Some(removed) = self.tile_map.remove(&pos) {
+                    world.despawn(removed.1).unwrap();
+                }
             },
-            _ => {}
         }
     }
 
@@ -101,10 +114,7 @@ impl Editor {
     }
 
     fn insert_selected_tile(&mut self, world: &mut World) {
-        let tile_pos = self.tile_position();
-        self.commands.push(Command::Insert(self.selected_tile, tile_pos));
-        let entity = world.spawn((self.selected_tile.get_render(), (tile_pos.0 as f32, tile_pos.1 as f32), self.cur_layer));
-        self.tile_map.insert(tile_pos, (self.selected_tile, entity));
+        self.insert_tile(world, self.selected_tile, self.tile_position());
     }
 
     fn tile_position(&self) -> (u32, u32) {
@@ -113,5 +123,34 @@ impl Editor {
             (((mouse_pos.0 / self.selected_tile.size().0).floor())  * self.selected_tile.size().0) as u32,
             (((mouse_pos.1 / self.selected_tile.size().1).floor()) * self.selected_tile.size().1) as u32 ,
         )
+    }
+
+    fn save_map(&self) {
+        println!("saving map");
+        let mut buffer = String::new();
+        for (pos, (tile, _)) in self.tile_map.iter() {
+            buffer.push_str(&format!("{}:{}x{} ", *tile as u32, pos.0, pos.1));
+        }
+
+        std::fs::write(MAP_PATH, &buffer).unwrap();
+    }
+
+    fn load_map(&mut self, world: &mut World) {
+        println!("loading map");
+        let content = std::fs::read_to_string(MAP_PATH).unwrap();
+        for s in content.trim_end().split(' ') {
+            let mut entry = s.split(':');
+            let tile = TileType::from_u32(entry.next().unwrap().parse::<u32>().unwrap());
+            let mut pos = entry.next().unwrap().split("x").map(|s| s.parse::<u32>().unwrap());
+            let pos = (pos.next().unwrap(), pos.next().unwrap());
+
+            self.insert_tile(world, tile, pos);
+        }
+    }
+
+    fn insert_tile(&mut self, world: &mut World, tile: TileType, pos: (u32, u32)) {
+        self.commands.push(Command::Insert(tile, pos));
+        let entity = world.spawn((tile.get_render(), (pos.0 as f32, pos.1 as f32), 0 as Layer));
+        self.tile_map.insert(pos, (tile, entity));
     }
 }

@@ -77,6 +77,19 @@ pub enum TileType {
 }
 
 impl TileType {
+    pub fn from_u32(u: u32) -> Self {
+        match u {
+            0 => Self::Ground,
+            1 => Self::Wall,
+            2 => Self::SideWall,
+            3 => Self::GatewayWall,
+            4 => Self::Door,
+            5 => Self::SideDoor,
+            6 => Self::Shadow,
+            _ => panic!("invalid tile type")
+        }
+    }
+
     pub fn get_render(&self) -> Render {
         match self {
             Self::Ground => {
