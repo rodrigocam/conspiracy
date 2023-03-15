@@ -12,10 +12,10 @@ const SAVE: KeyCode = KeyCode::S;
 const LOAD: KeyCode = KeyCode::L;
 const MULTI: KeyCode = KeyCode::Z;
 
-const MAP_PATH: &str = "map.txt";
+const MAP_PATH: &str = "stage_1.txt";
 
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Command {
     Insert(TileType, (u32, u32)),
 }
@@ -89,13 +89,15 @@ impl Editor {
     }
 
     fn undo_command(&mut self, world: &mut World) {
-        let last_command = self.commands.pop().unwrap();
-        match last_command {
-            Command::Insert(_, pos) => {
-                if let Some(removed) = self.tile_map.remove(&pos) {
-                    world.despawn(removed.1).unwrap();
-                }
-            },
+        if let Some(last_command) = self.commands.pop() {
+            println!("undoing {:?}", last_command);
+            match last_command {
+                Command::Insert(_, pos) => {
+                    if let Some(removed) = self.tile_map.remove(&pos) {
+                        world.despawn(removed.1).unwrap();
+                    }
+                },
+            }
         }
     }
 
@@ -128,10 +130,13 @@ impl Editor {
     fn save_map(&self) {
         println!("saving map");
         let mut buffer = String::new();
-        for (pos, (tile, _)) in self.tile_map.iter() {
-            buffer.push_str(&format!("{}:{}x{} ", *tile as u32, pos.0, pos.1));
+        for command in self.commands.iter() {
+            match command {
+                Command::Insert(tile, pos) => {
+                    buffer.push_str(&format!("{}:{}x{} ", *tile as u32, pos.0, pos.1));
+                }
+            }
         }
-
         std::fs::write(MAP_PATH, &buffer).unwrap();
     }
 
@@ -149,7 +154,12 @@ impl Editor {
     }
 
     fn insert_tile(&mut self, world: &mut World, tile: TileType, pos: (u32, u32)) {
-        self.commands.push(Command::Insert(tile, pos));
+        let command = Command::Insert(tile, pos);
+        if self.commands.last().is_some() && self.commands.last().unwrap() == &command {
+            return
+        }
+        println!("command {:?}", command);
+        self.commands.push(command);
         let entity = world.spawn((tile.get_render(), (pos.0 as f32, pos.1 as f32), 0 as Layer));
         self.tile_map.insert(pos, (tile, entity));
     }
