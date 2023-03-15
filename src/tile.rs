@@ -65,7 +65,7 @@ fn build_sidedoor_animation() -> (AnimationSource, Animation) {
     (anim_src, Animation::new(0.8, 4))
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TileType {
     Ground = 0,
     Wall = 1,
@@ -77,27 +77,27 @@ pub enum TileType {
 }
 
 impl TileType {
-    pub fn new_tile_entity(&self, pos: (f32, f32)) -> (TileType, Render, (f32, f32)) {
+    pub fn get_render(&self) -> Render {
         match self {
             Self::Ground => {
-                return (self.clone(), Render::Texture(TextureId::Ground as u32), pos);
+                return Render::Texture(TextureId::Ground as u32);
             },
             Self::Wall => {
-                return (self.clone(), Render::Texture(TextureId::Wall as u32), pos);
+                return Render::Texture(TextureId::Wall as u32);
             },
             Self::SideWall => {
-                return (self.clone(), Render::Texture(TextureId::SideWall as u32), pos);
+                return Render::Texture(TextureId::SideWall as u32);
             },
             Self::GatewayWall => {
-                return (self.clone(), Render::Texture(TextureId::GatewayWall as u32), pos);
+                return Render::Texture(TextureId::GatewayWall as u32);
             },
             Self::Door => {
                 let (anim_src, anim) = build_door_animation();
-                return (self.clone(), Render::Animation(anim, anim_src), pos);
+                return Render::Animation(anim, anim_src);
             },
             Self::SideDoor => {
                 let (anim_src, anim) = build_sidedoor_animation();
-                return (self.clone(), Render::Animation(anim, anim_src), pos);
+                return Render::Animation(anim, anim_src);
             },
             Self::Shadow => {
                 todo!("not implemented");

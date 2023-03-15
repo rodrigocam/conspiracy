@@ -4,7 +4,8 @@ Puzzle game
 
 ## Map Editor
 
-Keys 1, 2: Change to layer 1 and layer 2.
-Keys G, W: Pick the tile Ground and Wall.
+Keys 1, 2...: Change to the desired layer.
+Keys Q, W, E: Pick the tile to insert (Ground, Wall, Door).
 Keys I, D: Set insert mode and delete mode.
 Key S: Save map to file.
+Key U: Undo the last command.
